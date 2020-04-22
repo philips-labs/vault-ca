@@ -1,17 +1,18 @@
 # Vault Certificate Authority
 
-This project contains a setup of Vault as a Certificate Authority. It utilizes [Keybase](https://keybase.io) to safely store the **Vault Unseal Keys** and the **Vault Initial Root Token**.
+This project contains a setup of Vault as a Certificate Authority. It utilizes [Keybase](https://keybase.io) to safely store the **Vault Unseal Keys** and the **Vault Initial Root Token**. **jq** is used to interpret json on the cli.
 
 ## Prerequisites
 
 - [Keybase](https://keybase.io/download)
 - [Vault](https://www.vaultproject.io/downloads)
+- [jq](https://stedolan.github.io/jq/)
 
 ### MacOS
 
 ```bash
 brew cask install keybase
-brew install vault
+brew install vault jq
 vault -autocomplete-install && exec $SHELL
 ```
 
@@ -38,3 +39,4 @@ Now you can initialize vault, by running `init.sh`, providing our keybase userna
 
 - [Vault Getting Started](https://learn.hashicorp.com/vault/getting-started/install)
 - [Vault Build Your Own Certificate Authority (CA)](https://learn.hashicorp.com/vault/secrets-management/sm-pki-engine)
+- [Vault Policies](https://learn.hashicorp.com/vault/identity-access-management/iam-policies)

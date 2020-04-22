@@ -17,6 +17,10 @@ function initRootToken {
   cat "${keybase_path}/init.txt" | grep "Initial Root Token" | cut -d ':' -f2
 }
 
+function tokenCapabilities {
+  printf "%-20s | %s\n" "$1" "$(vault token capabilities $VAULT_TOKEN $1)"
+}
+
 export VAULT_ADDR=http://127.0.0.1:8200
 
 echo "Using '$keybase_path' for secret storage"
@@ -39,3 +43,17 @@ vault operator unseal $(unsealKey 1) > /dev/null
 vault operator unseal $(unsealKey 2) > /dev/null
 vault operator unseal $(unsealKey 3) > /dev/null
 vault status
+
+echo
+echo Apply policies:
+vault policy write ca policies/ca-policy.hcl
+
+echo
+echo Use ca policy enabled token:
+export VAULT_TOKEN=$(vault token create -policy=ca -format=json -ttl=5m | jq .auth.client_token | cut -d '"' -f2)
+echo Token capabilities:
+printf "%-20s | Capabilities\n" Path
+printf "%-20s | --------------------\n" --------------------
+tokenCapabilities sys/mounts
+tokenCapabilities sys/mounts/*
+tokenCapabilities pki*
