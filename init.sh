@@ -21,6 +21,12 @@ function tokenCapabilities {
   printf "%-20s | %s\n" "$1" "$(vault token capabilities $VAULT_TOKEN $1)"
 }
 
+function enablePKI {
+  if [ -z "$(vault secrets list | grep $1/)" ] ; then
+    vault secrets enable -max-lease-ttl=$2 -path=$1 -description="$3" pki
+  fi
+}
+
 export VAULT_ADDR=http://127.0.0.1:8200
 
 echo "Using '$keybase_path' for secret storage"
@@ -57,3 +63,24 @@ printf "%-20s | --------------------\n" --------------------
 tokenCapabilities sys/mounts
 tokenCapabilities sys/mounts/*
 tokenCapabilities pki*
+
+echo
+echo Enabling pki engine:
+enablePKI pki 87600h "Root CA"             # 10 years for root certificate
+enablePKI pki_int 43800h "Intermediate CA" # 5 years for intermediate certificates
+
+vault write -field=certificate pki/root/generate/internal \
+      common_name="Vault Certificate Authority" \
+      ttl=87600h > ${keybase_path}/CA_cert.crt
+
+vault write pki_int/intermediate/generate/internal \
+        common_name="Vault Intermediate Authority" \
+        -format=json | jq -r '.data.csr' > ${keybase_path}/pki_intermediate.csr
+vault write pki/root/sign-intermediate csr=@${keybase_path}/pki_intermediate.csr \
+        format=pem_bundle ttl=43800h \
+        -format=json | jq -r '.data.certificate' > ${keybase_path}/intermediate.cert.pem
+vault write pki_int/intermediate/set-signed certificate=@${keybase_path}/intermediate.cert.pem
+
+vault write pki/config/urls \
+      issuing_certificates="http://127.0.0.1:8200/v1/pki/ca" \
+      crl_distribution_points="http://127.0.0.1:8200/v1/pki/crl"
