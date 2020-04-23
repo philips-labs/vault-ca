@@ -1,33 +1,18 @@
 #!/usr/bin/env bash
 
-if [ -z "$1" ] ; then
-  >&2 echo Please provide your keybase username.
-  >&2 echo We will store some super secret stuff in your keybase private files
-  exit 1
-fi
+set -e
 
-kb_user=$1
-keybase_path=/Volumes/Keybase/private/$kb_user/vault
+source ${BASH_SOURCE%/*}/functions.sh
 
-function unsealKey {
-  cat "${keybase_path}/init.txt" | grep "Key $1" | cut -d ':' -f2
-}
+keybase_path=$(get_keybase_path $1)
 
-function initRootToken {
-  cat "${keybase_path}/init.txt" | grep "Initial Root Token" | cut -d ':' -f2
-}
+export VAULT_ADDR=http://127.0.0.1:8200
 
-function tokenCapabilities {
-  printf "%-20s | %s\n" "$1" "$(vault token capabilities $VAULT_TOKEN $1)"
-}
-
-function enablePKI {
+function enable_pki {
   if [ -z "$(vault secrets list | grep $1/)" ] ; then
     vault secrets enable -max-lease-ttl=$2 -path=$1 -description="$3" pki
   fi
 }
-
-export VAULT_ADDR=http://127.0.0.1:8200
 
 echo "Using '$keybase_path' for secret storage"
 
@@ -41,13 +26,13 @@ else
 fi
 echo See ${keybase_path}/init.txt for the keys and root token.
 
-export VAULT_TOKEN=$(initRootToken)
+export VAULT_TOKEN=$(get_root_token $keybase_path)
 
 echo
 echo Unsealing vault:
-vault operator unseal $(unsealKey 1) > /dev/null
-vault operator unseal $(unsealKey 2) > /dev/null
-vault operator unseal $(unsealKey 3) > /dev/null
+vault operator unseal $(get_unseal_key $keybase_path 1) > /dev/null
+vault operator unseal $(get_unseal_key $keybase_path 2) > /dev/null
+vault operator unseal $(get_unseal_key $keybase_path 3) > /dev/null
 vault status
 
 echo
@@ -60,14 +45,14 @@ export VAULT_TOKEN=$(vault token create -policy=ca -format=json -ttl=5m | jq .au
 echo Token capabilities:
 printf "%-20s | Capabilities\n" Path
 printf "%-20s | --------------------\n" --------------------
-tokenCapabilities sys/mounts
-tokenCapabilities sys/mounts/*
-tokenCapabilities pki*
+print_token_capabilities sys/mounts
+print_token_capabilities sys/mounts/*
+print_token_capabilities pki*
 
 echo
 echo Enabling pki engine:
-enablePKI pki 87600h "Root CA"             # 10 years for root certificate
-enablePKI pki_int 43800h "Intermediate CA" # 5 years for intermediate certificates
+enable_pki pki 87600h "Root CA"             # 10 years for root certificate
+enable_pki pki_int 43800h "Intermediate CA" # 5 years for intermediate certificates
 
 vault write -field=certificate pki/root/generate/internal \
       common_name="Vault Certificate Authority" \
