@@ -38,10 +38,11 @@ vault status
 echo
 echo Apply policies:
 vault policy write ca policies/ca-policy.hcl
+vault policy write issue-cert-philips-dot-dev policies/issue-cert-philips-dot-dev-policy.hcl
 
 echo
 echo Use ca policy enabled token:
-export VAULT_TOKEN=$(vault token create -policy=ca -format=json -ttl=5m | jq .auth.client_token | cut -d '"' -f2)
+export VAULT_TOKEN=$(vault token create -policy=ca -format=json -ttl=5m | jq -r .auth.client_token)
 echo Token capabilities:
 printf "%-20s | Capabilities\n" Path
 printf "%-20s | --------------------\n" --------------------
@@ -78,7 +79,7 @@ if [ -z "$intermediate" ] ; then
           format=pem_bundle ttl=43800h \
           -format=json | jq -r '.data.certificate' > ${keybase_path}/intermediate.crt
 
-  vault write pki_int/intermediate/set-signed certificate=@${keybase_path}/intermediate_chain.crt
+  vault write pki_int/intermediate/set-signed certificate=@${keybase_path}/intermediate.crt
 else
   echo Using existing intermediate CA.
 fi
@@ -86,3 +87,8 @@ fi
 vault write pki_int/config/urls \
       issuing_certificates="http://127.0.0.1:8200/v1/pki_int/ca" \
       crl_distribution_points="http://127.0.0.1:8200/v1/pki_int/crl"
+
+vault write pki_int/roles/philips-dot-dev \
+        allowed_domains="philips.dev" \
+        allow_subdomains=true \
+        max_ttl=720h
