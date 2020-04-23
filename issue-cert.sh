@@ -13,6 +13,10 @@ if [ -z "$2" ] ; then
 fi
 
 export VAULT_ADDR=http://127.0.0.1:8200
+
+echo
+${BASH_SOURCE%/*}/unseal.sh $1
+
 export VAULT_TOKEN=$(get_root_token $keybase_path)
 export VAULT_TOKEN=$(vault token create -policy=issue-cert-philips-dot-dev -format=json -ttl=5m | jq -r .auth.client_token)
 

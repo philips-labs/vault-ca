@@ -29,11 +29,7 @@ echo See ${keybase_path}/init.txt for the keys and root token.
 export VAULT_TOKEN=$(get_root_token $keybase_path)
 
 echo
-echo Unsealing vault:
-vault operator unseal $(get_unseal_key $keybase_path 1) > /dev/null
-vault operator unseal $(get_unseal_key $keybase_path 2) > /dev/null
-vault operator unseal $(get_unseal_key $keybase_path 3) > /dev/null
-vault status
+${BASH_SOURCE%/*}/unseal.sh $1
 
 echo
 echo Apply policies:
@@ -92,3 +88,6 @@ vault write pki_int/roles/philips-dot-dev \
         allowed_domains="philips.dev" \
         allow_subdomains=true \
         max_ttl=720h
+
+
+VAULT_TOKEN=$(get_root_token $keybase_path) vault operator seal
