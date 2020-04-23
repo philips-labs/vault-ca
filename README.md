@@ -35,12 +35,24 @@ Now you can initialize vault, by running `init.sh`, providing our keybase userna
 ./init.sh marcofranssen
 ```
 
+## Issue certificates
+
+To issue a new certificate you can use the `issue-cert.sh` script. This will create 2 files in the current folder.
+
+- your.domain.tld.crt
+- your.domain.tld.key
+
+```bash
+./issue-cert.sh marcofranssen marco.philips.dev
+```
+
 ## Verify certificates
 
 To validate if your certificate is valid you can use the `verify-cert.sh` script which will validate the certificate against the CA Issuer and the CRL (Certificate Revocation List). This allows you to very easily check for revoked certificates.
 
 ```bash
 ./verify-cert.sh /Volumes/Keybase/private/marcofranssen/vault/intermediate.cert.pem
+./verify-cert.sh marco.philips.dev
 ```
 
 ## References
