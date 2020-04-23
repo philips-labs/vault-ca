@@ -54,18 +54,35 @@ echo Enabling pki engine:
 enable_pki pki 87600h "Root CA"             # 10 years for root certificate
 enable_pki pki_int 43800h "Intermediate CA" # 5 years for intermediate certificates
 
-vault write -field=certificate pki/root/generate/internal \
-      common_name="Vault Certificate Authority" \
-      ttl=87600h > ${keybase_path}/CA_cert.crt
-
-vault write pki_int/intermediate/generate/internal \
-        common_name="Vault Intermediate Authority" \
-        -format=json | jq -r '.data.csr' > ${keybase_path}/pki_intermediate.csr
-vault write pki/root/sign-intermediate csr=@${keybase_path}/pki_intermediate.csr \
-        format=pem_bundle ttl=43800h \
-        -format=json | jq -r '.data.certificate' > ${keybase_path}/intermediate.cert.pem
-vault write pki_int/intermediate/set-signed certificate=@${keybase_path}/intermediate.cert.pem
+ca=$(curl -s http://127.0.0.1:8200/v1/pki/ca/pem)
+if [ -z "$ca" ] ; then
+  echo Generating root CA.
+  ca=$(vault write -field=certificate pki/root/generate/internal \
+        common_name="Vault Certificate Authority" \
+        ttl=87600h)
+else
+  echo Using existing root CA.
+fi
 
 vault write pki/config/urls \
       issuing_certificates="http://127.0.0.1:8200/v1/pki/ca" \
       crl_distribution_points="http://127.0.0.1:8200/v1/pki/crl"
+
+intermediate=$(curl -s http://127.0.0.1:8200/v1/pki_int/ca/pem)
+if [ -z "$intermediate" ] ; then
+  echo Generating intermediate CA.
+  vault write pki_int/intermediate/generate/internal \
+          common_name="Vault Intermediate Authority" \
+          -format=json | jq -r '.data.csr' > ${keybase_path}/pki_intermediate.csr
+  vault write pki/root/sign-intermediate csr=@${keybase_path}/pki_intermediate.csr \
+          format=pem_bundle ttl=43800h \
+          -format=json | jq -r '.data.certificate' > ${keybase_path}/intermediate.crt
+
+  vault write pki_int/intermediate/set-signed certificate=@${keybase_path}/intermediate_chain.crt
+else
+  echo Using existing intermediate CA.
+fi
+
+vault write pki_int/config/urls \
+      issuing_certificates="http://127.0.0.1:8200/v1/pki_int/ca" \
+      crl_distribution_points="http://127.0.0.1:8200/v1/pki_int/crl"
