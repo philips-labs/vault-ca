@@ -22,6 +22,7 @@ export VAULT_TOKEN=$(vault token create -policy=issue-cert-philips-dot-dev -form
 
 cert_data=$(vault write pki_int/issue/philips-dot-dev common_name="$2" ttl="24h" format="pem" -format=json | jq .data)
 
-echo $cert_data | jq -r '.certificate' > $2.crt
-echo $cert_data | jq -r '.issuing_ca' >> $2.crt
-echo $cert_data | jq -r '.private_key' > $2.key
+mkdir -p certs
+echo $cert_data | jq -r '.certificate' > certs/$2.crt
+echo $cert_data | jq -r '.issuing_ca' >> certs/$2.crt
+echo $cert_data | jq -r '.private_key' > certs/$2.key
