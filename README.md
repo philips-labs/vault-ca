@@ -55,6 +55,21 @@ To validate if your certificate is valid you can use the `verify-cert.sh` script
 ./verify-cert.sh marco.philips.dev
 ```
 
+## Trust certificates
+
+### Import certificates in keychain on MacOS
+
+On MacOS you can add the certificate in keychain so your browser will accept any of the Vault certificates as trusted certificates.
+
+To do so we will import both the root and intermediate certificate into keychain. Next we will set the root certificate to Always trust.
+
+```bash
+curl -so certs/ca.pem http://127.0.0.1:8200/v1/pki/ca/pem
+curl -so certs/intermediate.pem http://127.0.0.1:8200/v1/pki_int/ca/pem
+sudo security add-trusted-cert -k /Library/Keychains/System.keychain certs/ca.pem
+sudo security add-trusted-cert -k /Library/Keychains/System.keychain -r unspecified certs/intermediate.pem
+```
+
 ## References
 
 - [Vault Getting Started](https://learn.hashicorp.com/vault/getting-started/install)
