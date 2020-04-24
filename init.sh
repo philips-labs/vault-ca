@@ -51,7 +51,7 @@ echo Enabling pki engine:
 enable_pki pki 87600h "Root CA"             # 10 years for root certificate
 enable_pki pki_int 43800h "Intermediate CA" # 5 years for intermediate certificates
 
-ca=$(curl -s http://127.0.0.1:8200/v1/pki/ca/pem)
+ca=$(curl -s $VAULT_ADDR/v1/pki/ca/pem)
 if [ -z "$ca" ] ; then
   echo Generating root CA.
   ca=$(vault write -field=certificate pki/root/generate/internal \
@@ -62,10 +62,10 @@ else
 fi
 
 vault write pki/config/urls \
-      issuing_certificates="http://127.0.0.1:8200/v1/pki/ca" \
-      crl_distribution_points="http://127.0.0.1:8200/v1/pki/crl"
+      issuing_certificates="$VAULT_ADDR/v1/pki/ca" \
+      crl_distribution_points="$VAULT_ADDR/v1/pki/crl"
 
-intermediate=$(curl -s http://127.0.0.1:8200/v1/pki_int/ca/pem)
+intermediate=$(curl -s $VAULT_ADDR/v1/pki_int/ca/pem)
 if [ -z "$intermediate" ] ; then
   echo Generating intermediate CA.
   vault write pki_int/intermediate/generate/internal \
@@ -81,13 +81,12 @@ else
 fi
 
 vault write pki_int/config/urls \
-      issuing_certificates="http://127.0.0.1:8200/v1/pki_int/ca" \
-      crl_distribution_points="http://127.0.0.1:8200/v1/pki_int/crl"
+      issuing_certificates="$VAULT_ADDR/v1/pki_int/ca" \
+      crl_distribution_points="$VAULT_ADDR/v1/pki_int/crl"
 
 vault write pki_int/roles/philips-dot-dev \
         allowed_domains="philips.dev" \
         allow_subdomains=true \
         max_ttl=720h
-
 
 VAULT_TOKEN=$(get_root_token $keybase_path) vault operator seal
